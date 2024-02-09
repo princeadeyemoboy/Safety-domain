@@ -1,0 +1,834 @@
+NOTE: PROCEDURE PRINTTO used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              264.62k
+      OS Memory           23460.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        199  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     24
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+      
+
+70         data vital_sign;
+71         set assinm.vsraw;
+NOTE: Data file ASSINM.VSRAW.DATA is in a format that is native to another host, or the file encoding does not match the session 
+      encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+      performance.
+72         ***generating the visit date in iso8061 format;
+73           vs_datey= input(vs_date, yymmdd8.);
+74           vs_datey1 =put(vs_datey, yymmdd10.);
+75           timey = substr(time, 1, 2);
+76           timez = substr(time, 3, 2);
+77           timexy = catx(":", timey, timez);
+78           *BP = put(systolic, 3.0) || "/" || put(diastolic, 2.0);
+79           *temperature=temperaturey;
+80           vsdate_time= catx("T", vs_datey1, timexy);
+81           drop timey timez timexy vs_datey1 vs_datey;
+82         run;
+
+NOTE: There were 10 observations read from the data set ASSINM.VSRAW.
+NOTE: The data set WORK.VITAL_SIGN has 10 observations and 12 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              906.84k
+      OS Memory           23720.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        200  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     111
+      Page Swaps                        0
+      Voluntary Context Switches        16
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+83         
+2                                                          The SAS System                           Monday, May 15, 2023 11:29:06 AM
+
+84         ***sorting by the variable whic will intend to remain as column**;
+85         proc sort data=vital_sign out=vital_sign1;
+86           by patient visit timepoint vsdate_time;
+87         run;
+
+NOTE: There were 10 observations read from the data set WORK.VITAL_SIGN.
+NOTE: The data set WORK.VITAL_SIGN1 has 10 observations and 12 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1040.31k
+      OS Memory           24240.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        201  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     152
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+88         
+89         
+90         ***transposing systolic tempetc in var statement to rows;
+91         proc transpose data=vital_sign1 out=trans_vit(rename=(patient=USUBJID
+92          _name_=VSTEST col1=VSORRES));
+93           by patient visit timepoint vsdate_time temp_unit;
+94           var systolic diastolic respiratory_rate heart_rate temperature;
+95         run;
+
+NOTE: There were 10 observations read from the data set WORK.VITAL_SIGN1.
+NOTE: The data set WORK.TRANS_VIT has 50 observations and 8 variables.
+NOTE: PROCEDURE TRANSPOSE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              2822.75k
+      OS Memory           26032.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        202  Switch Count  4
+      Page Faults                       0
+      Page Reclaims                     184
+      Page Swaps                        0
+      Voluntary Context Switches        20
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           528
+      
+
+96         
+97         data vs1;
+98         set trans_vit;
+99         **assign vsorres to vsstres;
+100        VSSTRESC = VSORRES;
+101        
+3                                                          The SAS System                           Monday, May 15, 2023 11:29:06 AM
+
+102        ***converting Farenheit to celsius in vsstres
+103        using if else do statement;
+104        if VSSTRESC in ("98", "96", "98.4", "98.2", "99.6", "99.4" ) then do;
+105          VSSTRESC= (VSSTRESC-32)*5/9;
+106          end;
+107        else do;
+108         VSSTRESC=VSSTRESC;
+109         end;
+110        
+111        ***generating vsorresu and vsstresn using if else do
+112         statement for each test temp, systolic etc;
+113        if vstest in("Systolic", "Diastolic") then do;
+114          VSORRESU = "mmHg";
+115          VSSTRESU ="mmHg";
+116        end;
+117        
+118        
+119        else if vstest = "Respiratory_Rate" then do;
+120          VSORRESU = "br/min";
+121          VSSTRESU ="br/min";
+122        end;
+123        
+124        else if vstest = "Heart_Rate" then do;
+125          VSORRESU = "bpm";
+126          VSSTRESU ="bpm";
+127        end;
+128        
+129        else if VSORRES in("98", "96", "98.4", "98.2", "99.6", "99.4") then do;
+130          VSORRESU = "°F";
+131          *VSSTRESU= "°C";
+132        end;
+133        else do;
+134          VSORRESU = "°C";
+135        end;
+136        
+137        if VSSTRESC in("36.9","36.6", "36.4", "36.7", "36.67", "35.56",
+138        "36.89", "36.78", "37.44", "37.56") then do;
+139          VSSTRESU= "°C";
+140        end;
+141        drop temp_unit _label_;
+142        run;
+
+NOTE: Character values have been converted to numeric values at the places given by: (Line):(Column).
+      105:14   
+NOTE: Numeric values have been converted to character values at the places given by: (Line):(Column).
+      105:28   
+NOTE: There were 50 observations read from the data set WORK.TRANS_VIT.
+NOTE: The data set WORK.VS1 has 50 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              823.96k
+      OS Memory           23980.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        203  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     129
+4                                                          The SAS System                           Monday, May 15, 2023 11:29:06 AM
+
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+143        
+144        
+145        
+146        ***converting char data to numeric and using if_else condition to apply
+147         diff format to  VSSTRESC to form  VSSTRESN ***;
+148        data vs2x;
+149        set vs1;
+150          if VSSTRESC in("36.6", "36.9", "36.4", "36.7") then
+151          VSSTRESN = input(put(VSSTRESC,4.1), best12.);
+152          else if VSSTRESC in ("36.67",
+153          "36.89", "36.78", "37.44", "37.56") then
+154          VSSTRESN = input(put(VSSTRESC,5.2), best12.);
+155          else VSSTRESN = input(put(VSSTRESC,3.0), best12.);
+156        run;
+
+NOTE: There were 50 observations read from the data set WORK.VS1.
+NOTE: The data set WORK.VS2X has 50 observations and 10 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              819.53k
+      OS Memory           23980.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        204  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     128
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+157        
+158        
+159        
+160        
+161        ***sorting***;
+162        proc sort
+163        data=vs2x out=vs4;
+164         by usubjid vstest visit VSSTRESU VSORRESU;
+165         run;
+
+NOTE: There were 50 observations read from the data set WORK.VS2X.
+NOTE: The data set WORK.VS4 has 50 observations and 10 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1041.03k
+5                                                          The SAS System                           Monday, May 15, 2023 11:29:06 AM
+
+      OS Memory           24240.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        205  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     148
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           280
+      
+
+166        
+167        *Average for each test findings with proc means nd by statement;
+168        proc means data=vs4 mean noprint;
+169          by usubjid vstest visit VSSTRESU VSORRESU;
+170          var VSSTRESN;
+171          output out=vs5 mean=VSSTRESN;
+172        run;
+
+NOTE: There were 50 observations read from the data set WORK.VS4.
+NOTE: The data set WORK.VS5 has 25 observations and 8 variables.
+NOTE: PROCEDURE MEANS used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1872.96k
+      OS Memory           25008.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        206  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     255
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+173        
+174        data vs6;
+175        set vs5;
+176        if visit = "Screening" then visit = "Baseline";
+177        run;
+
+NOTE: There were 25 observations read from the data set WORK.VS5.
+NOTE: The data set WORK.VS6 has 25 observations and 8 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              802.62k
+      OS Memory           23980.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        207  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     126
+      Page Swaps                        0
+6                                                          The SAS System                           Monday, May 15, 2023 11:29:06 AM
+
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+178        
+179        *manipulating and renaming and merging vertically with the previous records*;
+180        data vital(rename=(timepoint= EPOCH visit=VISIT1 vsdate_time=VSDTC));;
+181        set vs2x vs6;
+182        run;
+
+NOTE: There were 50 observations read from the data set WORK.VS2X.
+NOTE: There were 25 observations read from the data set WORK.VS6.
+NOTE: The data set WORK.VITAL has 75 observations and 12 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              1163.87k
+      OS Memory           24240.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        208  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     160
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+183        
+184        proc sort data=vital out=vital1; by usubjid vstest; run;
+
+NOTE: There were 75 observations read from the data set WORK.VITAL.
+NOTE: The data set WORK.VITAL1 has 75 observations and 12 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1041.03k
+      OS Memory           24240.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        209  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     148
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+185        
+186        ***Calculating vseq to create uniqueness and creating the derived flag;;
+187        data vital2(rename=(VISIT1=VISIT));
+188        retain USUBJID VISIT1 EPOCH VSDTC VSTEST VSORRES VSORRESU VSSTRESC VSSTRESN VSSTRESU;
+7                                                          The SAS System                           Monday, May 15, 2023 11:29:06 AM
+
+189        set vital1(drop= _TYPE_ _FREQ_ );
+190          by usubjid vstest;
+191          if first.usubjid then VSSEQ =.;
+192          VSSEQ+1;
+193          if visit1 = "Baseline" then VSDRVFL = "Y";
+194          if visit1 = "Baseline" then VSBLFL = "Y";
+195          if usubjid ne " " then Domain = "VS";
+196        run;
+
+NOTE: There were 75 observations read from the data set WORK.VITAL1.
+NOTE: The data set WORK.VITAL2 has 75 observations and 14 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              901.40k
+      OS Memory           23980.00k
+      Timestamp           05/15/2023 10:29:06 AM
+      Step Count                        210  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     131
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+197        
+198        
+199        
+200        ****exporting vital_sign to an external location;
+201        proc copy in=work out=assinm;
+202        select vital2;
+203        run;
+
+NOTE: Copying WORK.VITAL2 to ASSINM.VITAL2 (memtype=DATA).
+NOTE: There were 75 observations read from the data set WORK.VITAL2.
+NOTE: The data set ASSINM.VITAL2 has 75 observations and 14 variables.
+NOTE: PROCEDURE COPY used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              995.84k
+      OS Memory           24240.00k
+      Timestamp           05/15/2023 10:29:07 AM
+      Step Count                        211  Switch Count  8
+      Page Faults                       0
+      Page Reclaims                     147
+      Page Swaps                        0
+      Voluntary Context Switches        69
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+204        proc printto;
+205        run;
+8                                                          The SAS System                           Monday, May 15, 2023 11:29:07 AM
+
+
+NOTE: PROCEDURE PRINTTO used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              257.62k
+      OS Memory           23456.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        95  Switch Count  3
+      Page Faults                       0
+      Page Reclaims                     18
+      Page Swaps                        0
+      Voluntary Context Switches        24
+      Involuntary Context Switches      0
+      Block Input Operations            32
+      Block Output Operations           0
+      
+
+72         data vital_sign;
+73         set assinm.vsraw;
+NOTE: Data file ASSINM.VSRAW.DATA is in a format that is native to another host, or the file encoding does not match the session 
+      encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+      performance.
+74         ***generating the visit date in iso8061 format;
+75           vs_datey= input(vs_date, yymmdd8.);
+76           vs_datey1 =put(vs_datey, yymmdd10.);
+77           timey = substr(time, 1, 2);
+78           timez = substr(time, 3, 2);
+79           timexy = catx(":", timey, timez);
+80           *BP = put(systolic, 3.0) || "/" || put(diastolic, 2.0);
+81           *temperature=temperaturey;
+82           vsdate_time= catx("T", vs_datey1, timexy);
+83           drop timey timez timexy vs_datey1 vs_datey;
+84         run;
+
+NOTE: There were 10 observations read from the data set ASSINM.VSRAW.
+NOTE: The data set WORK.VITAL_SIGN has 10 observations and 12 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              901.65k
+      OS Memory           23716.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        96  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     137
+      Page Swaps                        0
+      Voluntary Context Switches        15
+2                                                          The SAS System                      Friday, February  9, 2024 01:26:58 PM
+
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+85         
+86         ***sorting by the variable whic will intend to remain as column**;
+87         proc sort data=vital_sign out=vital_sign1;
+88           by patient visit timepoint vsdate_time;
+89         run;
+
+NOTE: There were 10 observations read from the data set WORK.VITAL_SIGN.
+NOTE: The data set WORK.VITAL_SIGN1 has 10 observations and 12 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1039.12k
+      OS Memory           24236.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        97  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     151
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+90         
+91         
+92         ***transposing systolic tempetc in var statement to rows;
+93         proc transpose data=vital_sign1 out=trans_vit(rename=(patient=USUBJID
+94          _name_=VSTEST col1=VSORRES));
+95           by patient visit timepoint vsdate_time temp_unit;
+96           var systolic diastolic respiratory_rate heart_rate temperature;
+97         run;
+
+NOTE: There were 10 observations read from the data set WORK.VITAL_SIGN1.
+NOTE: The data set WORK.TRANS_VIT has 50 observations and 8 variables.
+NOTE: PROCEDURE TRANSPOSE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              2831.37k
+      OS Memory           26028.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        98  Switch Count  4
+      Page Faults                       0
+      Page Reclaims                     199
+      Page Swaps                        0
+      Voluntary Context Switches        20
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           528
+      
+
+3                                                          The SAS System                      Friday, February  9, 2024 01:26:58 PM
+
+98         
+99         data vs1;
+100        set trans_vit;
+101        **assign vsorres to vsstres;
+102        VSSTRESC = VSORRES;
+103        
+104        ***converting Farenheit to celsius in vsstres
+105        using if else do statement;
+106        if VSSTRESC in ("98", "96", "98.4", "98.2", "99.6", "99.4" ) then do;
+107          VSSTRESC= (VSSTRESC-32)*5/9;
+108          end;
+109        else do;
+110         VSSTRESC=VSSTRESC;
+111         end;
+112        
+113        ***generating vsorresu and vsstresn using if else do
+114         statement for each test temp, systolic etc;
+115        if vstest in("Systolic", "Diastolic") then do;
+116          VSORRESU = "mmHg";
+117          VSSTRESU ="mmHg";
+118        end;
+119        
+120        
+121        else if vstest = "Respiratory_Rate" then do;
+122          VSORRESU = "br/min";
+123          VSSTRESU ="br/min";
+124        end;
+125        
+126        else if vstest = "Heart_Rate" then do;
+127          VSORRESU = "bpm";
+128          VSSTRESU ="bpm";
+129        end;
+130        
+131        else if VSORRES in("98", "96", "98.4", "98.2", "99.6", "99.4") then do;
+132          VSORRESU = "°F";
+133          *VSSTRESU= "°C";
+134        end;
+135        else do;
+136          VSORRESU = "°C";
+137        end;
+138        
+139        if VSSTRESC in("36.9","36.6", "36.4", "36.7", "36.67", "35.56",
+140        "36.89", "36.78", "37.44", "37.56") then do;
+141          VSSTRESU= "°C";
+142        end;
+143        drop temp_unit _label_;
+144        run;
+
+NOTE: Character values have been converted to numeric values at the places given by: (Line):(Column).
+      107:14   
+NOTE: Numeric values have been converted to character values at the places given by: (Line):(Column).
+      107:28   
+NOTE: There were 50 observations read from the data set WORK.TRANS_VIT.
+NOTE: The data set WORK.VS1 has 50 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+4                                                          The SAS System                      Friday, February  9, 2024 01:26:58 PM
+
+      memory              821.50k
+      OS Memory           23976.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        99  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     139
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+145        
+146        
+147        
+148        ***converting char data to numeric and using if_else condition to apply
+149         diff format to  VSSTRESC to form  VSSTRESN ***;
+150        data vs2x;
+151        set vs1;
+152          if VSSTRESC in("36.6", "36.9", "36.4", "36.7") then
+153          VSSTRESN = input(put(VSSTRESC,4.1), best12.);
+154          else if VSSTRESC in ("36.67",
+155          "36.89", "36.78", "37.44", "37.56") then
+156          VSSTRESN = input(put(VSSTRESC,5.2), best12.);
+157          else VSSTRESN = input(put(VSSTRESC,3.0), best12.);
+158        run;
+
+NOTE: There were 50 observations read from the data set WORK.VS1.
+NOTE: The data set WORK.VS2X has 50 observations and 10 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              820.93k
+      OS Memory           23976.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        100  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     125
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+159        
+160        
+161        
+162        
+163        ***sorting***;
+164        proc sort
+165        data=vs2x out=vs4;
+166         by usubjid vstest visit VSSTRESU VSORRESU;
+167         run;
+
+NOTE: There were 50 observations read from the data set WORK.VS2X.
+5                                                          The SAS System                      Friday, February  9, 2024 01:26:58 PM
+
+NOTE: The data set WORK.VS4 has 50 observations and 10 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1040.00k
+      OS Memory           24236.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        101  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     146
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+168        
+169        *Average for each test findings with proc means nd by statement;
+170        proc means data=vs4 mean noprint;
+171          by usubjid vstest visit VSSTRESU VSORRESU;
+172          var VSSTRESN;
+173          output out=vs5 mean=VSSTRESN;
+174        run;
+
+NOTE: There were 50 observations read from the data set WORK.VS4.
+NOTE: The data set WORK.VS5 has 25 observations and 8 variables.
+NOTE: PROCEDURE MEANS used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1872.12k
+      OS Memory           25004.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        102  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     252
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+175        
+176        data vs6;
+177        set vs5;
+178        if visit = "Screening" then visit = "Baseline";
+179        run;
+
+NOTE: There were 25 observations read from the data set WORK.VS5.
+NOTE: The data set WORK.VS6 has 25 observations and 8 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              801.28k
+6                                                          The SAS System                      Friday, February  9, 2024 01:26:58 PM
+
+      OS Memory           23976.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        103  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     134
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+180        
+181        *manipulating and renaming and merging vertically with the previous records*;
+182        data vital(rename=(timepoint= EPOCH visit=VISIT1 vsdate_time=VSDTC));;
+183        set vs2x vs6;
+184        run;
+
+NOTE: There were 50 observations read from the data set WORK.VS2X.
+NOTE: There were 25 observations read from the data set WORK.VS6.
+NOTE: The data set WORK.VITAL has 75 observations and 12 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              1163.28k
+      OS Memory           24236.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        104  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     170
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+185        
+186        proc sort data=vital out=vital1; by usubjid vstest; run;
+
+NOTE: There were 75 observations read from the data set WORK.VITAL.
+NOTE: The data set WORK.VITAL1 has 75 observations and 12 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1040.37k
+      OS Memory           24236.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        105  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     146
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+7                                                          The SAS System                      Friday, February  9, 2024 01:26:58 PM
+
+      
+
+187        
+188        ***Calculating vseq to create uniqueness and creating the derived flag;;
+189        data vital2(rename=(VISIT1=VISIT));
+190        retain USUBJID VISIT1 EPOCH VSDTC VSTEST VSORRES VSORRESU VSSTRESC VSSTRESN VSSTRESU;
+191        set vital1(drop= _TYPE_ _FREQ_ );
+192          by usubjid vstest;
+193          if first.usubjid then VSSEQ =.;
+194          VSSEQ+1;
+195          if visit1 = "Baseline" then VSDRVFL = "Y";
+196          if visit1 = "Baseline" then VSBLFL = "Y";
+197          if usubjid ne " " then Domain = "VS";
+198        run;
+
+NOTE: There were 75 observations read from the data set WORK.VITAL1.
+NOTE: The data set WORK.VITAL2 has 75 observations and 14 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              901.50k
+      OS Memory           23976.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        106  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     134
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+199        
+200        
+201        
+202        ****exporting vital_sign to an external location;
+203        proc copy in=work out=assinm;
+204        select vital2;
+205        run;
+
+NOTE: Copying WORK.VITAL2 to ASSINM.VITAL2 (memtype=DATA).
+NOTE: There were 75 observations read from the data set WORK.VITAL2.
+NOTE: The data set ASSINM.VITAL2 has 75 observations and 14 variables.
+NOTE: PROCEDURE COPY used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1027.03k
+      OS Memory           24236.00k
+      Timestamp           02/09/2024 12:26:58 PM
+      Step Count                        107  Switch Count  3
+      Page Faults                       0
+      Page Reclaims                     215
+      Page Swaps                        0
+      Voluntary Context Switches        40
+      Involuntary Context Switches      0
+8                                                          The SAS System                      Friday, February  9, 2024 01:26:58 PM
+
+      Block Input Operations            32
+      Block Output Operations           272
+      
+
+206        proc printto;
+207        run;
+
