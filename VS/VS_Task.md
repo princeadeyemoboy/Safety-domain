@@ -13,4 +13,5 @@ given in SDTMIG.
 add as a new record. Kindly refer to the examples given in SDTMIG.
 
 
-
+## Output
+- [Log](https://github.com/princeadeyemoboy/safety-domain/blob/main/VS/vital.log)
