@@ -4,4 +4,4 @@
 ## Output
 - [Program](https://github.com/princeadeyemoboy/safety-domain/blob/main/DM/assigned_case2.sas)
 - [Log](https://github.com/princeadeyemoboy/safety-domain/blob/main/DM/dm.log)
-- [Rtf](https://github.com/princeadeyemoboy/safety-domain/blob/main/DM/dm.rtf)
+- [Rtf](https://docs.google.com/document/d/1cFgRvLoZeSyqMgsG9QNsSMlE6Ps2Nyx0/edit?usp=drive_link&ouid=108592776259445124859&rtpof=true&sd=true)
