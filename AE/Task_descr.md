@@ -27,7 +27,9 @@
      - Treatment Emergent AE can be defined as an event that occurred after treatment. If treatment (reference) start date and AE start date are similar, then the event will be considered as TEAE.
     
 
-##Output
-- [Log](https://github.com/princeadeyemoboy/safety-domain/blob/main/AE/Aevent.log)
+
 
 ---------------------------------------------------*********----------------------------------------------------
+
+##Output
+- [Log](https://github.com/princeadeyemoboy/safety-domain/blob/main/AE/Aevent.log)
