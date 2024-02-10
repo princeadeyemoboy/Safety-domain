@@ -6,6 +6,6 @@
      - There are 5 LBTESTCDs and 10 visits per subject, few of the visits are missing so derive AVISIT with LOCF method.
 
 # Output
-- [Log]()
+- [Log](https://github.com/princeadeyemoboy/safety-domain/blob/main/LB/lb-final.log)
 - [Program](https://github.com/princeadeyemoboy/safety-domain/blob/main/LB/lab.sas)
 - [Dataset]()
