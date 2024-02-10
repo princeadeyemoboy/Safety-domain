@@ -1,0 +1,234 @@
+NOTE: PROCEDURE PRINTTO used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              370.81k
+      OS Memory           24480.00k
+      Timestamp           02/10/2024 09:36:45 AM
+      Step Count                        557  Switch Count  4
+      Page Faults                       0
+      Page Reclaims                     22
+      Page Swaps                        0
+      Voluntary Context Switches        30
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+      
+
+73         proc sort data=myw.lb out=lb1;
+NOTE: Data file MYW.LB.DATA is in a format that is native to another host, or the file encoding does not match the session 
+      encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+      performance.
+74         by usubjid paramcd visitnum;
+75         run;
+
+NOTE: There were 496 observations read from the data set MYW.LB.
+NOTE: The data set WORK.LB1 has 496 observations and 9 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1188.28k
+      OS Memory           25256.00k
+      Timestamp           02/10/2024 09:36:45 AM
+      Step Count                        558  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     195
+      Page Swaps                        0
+      Voluntary Context Switches        16
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+76         
+77         **one or more records per Usubjid and paramcd;
+78         proc sql;
+79         create table temp_data1 as
+2                                                          The SAS System                    Saturday, February 10, 2024 10:36:45 AM
+
+80         select distinct usubjid, paramcd
+81         from lb1;
+NOTE: Table WORK.TEMP_DATA1 created, with 50 rows and 2 columns.
+
+82         quit;
+NOTE: PROCEDURE SQL used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              5469.56k
+      OS Memory           30120.00k
+      Timestamp           02/10/2024 09:36:45 AM
+      Step Count                        559  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     142
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+83         
+84         **use do loop to create avisit1-9;
+85         data temp_data2;
+86           set temp_data1;
+87           length avisit $50;
+88           do visitnum = 1 to 9;
+89              avisit = "VISIT-" || strip(put(visitnum, best.));
+90              output;
+91           end;
+92         run;
+
+NOTE: There were 50 observations read from the data set WORK.TEMP_DATA1.
+NOTE: The data set WORK.TEMP_DATA2 has 450 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              802.37k
+      OS Memory           25512.00k
+      Timestamp           02/10/2024 09:36:45 AM
+      Step Count                        560  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     117
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+93         
+94         **sort the resulting data by usubjid paramcd visitnum;
+95         proc sort data=temp_data2;
+96         by usubjid paramcd visitnum;
+97         run;
+
+3                                                          The SAS System                    Saturday, February 10, 2024 10:36:45 AM
+
+NOTE: There were 450 observations read from the data set WORK.TEMP_DATA2.
+NOTE: The data set WORK.TEMP_DATA2 has 450 observations and 4 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              778.00k
+      OS Memory           25512.00k
+      Timestamp           02/10/2024 09:36:45 AM
+      Step Count                        561  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     110
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+98         
+99         
+100        
+101        *merge temp_data2 to lb2 and create dtype to indicate that derived missing visit;
+102        data lb_perm;
+103        merge temp_data2(in=a) lb1(in=b);
+104        by usubjid paramcd visitnum;
+105        if a and not b then dtype="LOCF";
+106        drop visitnum;
+107        run;
+
+NOTE: There were 450 observations read from the data set WORK.TEMP_DATA2.
+NOTE: There were 496 observations read from the data set WORK.LB1.
+NOTE: The data set WORK.LB_PERM has 500 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1251.37k
+      OS Memory           25772.00k
+      Timestamp           02/10/2024 09:36:45 AM
+      Step Count                        562  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     151
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+108        
+109        
+110        
+111        *use retain statement for locf for;
+112        data lb_data1(drop= base1 avalu1 chg1 aval1 pchg1);
+113        retain  base1 chg1 aval1 avalu1 pchg1;
+114        set lb_perm;
+115        if base ne . then base1=base;
+4                                                          The SAS System                    Saturday, February 10, 2024 10:36:45 AM
+
+116        else base=base1;
+117        if chg ne . then chg1=chg;
+118        else chg=chg1;
+119        if avalu ne " " then avalu1=avalu;
+120        else avalu=avalu1;
+121        if aval ne . then aval1=aval;
+122        else aval=aval1;
+123        if pchg ne . then pchg1=pchg;
+124        else pchg=pchg1;
+125        run;
+
+NOTE: There were 500 observations read from the data set WORK.LB_PERM.
+NOTE: The data set WORK.LB_DATA1 has 500 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              812.65k
+      OS Memory           25512.00k
+      Timestamp           02/10/2024 09:36:45 AM
+      Step Count                        563  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     107
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+126        
+127        
+128        ***derive the lbseq for unique records for the final dataset;
+129        data myw.lb_final;
+130        set lb_data1;
+131        by usubjid;
+132        if first.usubjid then lbseq=.;
+133        lbseq+1;
+134        run;
+
+NOTE: There were 500 observations read from the data set WORK.LB_DATA1.
+NOTE: The data set MYW.LB_FINAL has 500 observations and 10 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              876.56k
+      OS Memory           25512.00k
+      Timestamp           02/10/2024 09:36:45 AM
+      Step Count                        564  Switch Count  11
+      Page Faults                       0
+      Page Reclaims                     106
+      Page Swaps                        0
+      Voluntary Context Switches        81
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+5                                                          The SAS System                    Saturday, February 10, 2024 10:36:45 AM
+
+
+135        
+136        proc printto;
+137        run;
+
