@@ -8,4 +8,4 @@
 # Output
 - [Log](https://github.com/princeadeyemoboy/safety-domain/blob/main/LB/lb-final.log)
 - [Program](https://github.com/princeadeyemoboy/safety-domain/blob/main/LB/lab.sas)
-- [Dataset]()
+- [Dataset](https://github.com/princeadeyemoboy/safety-domain/blob/main/LB/lb_final.sas7bdat)
