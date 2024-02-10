@@ -1,0 +1,540 @@
+NOTE: PROCEDURE PRINTTO used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              265.56k
+      OS Memory           21920.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        203  Switch Count  4
+      Page Faults                       0
+      Page Reclaims                     30
+      Page Swaps                        0
+      Voluntary Context Switches        29
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+      
+
+72         data Ae1;
+73           set aevent.ae_report;
+NOTE: Data file AEVENT.AE_REPORT.DATA is in a format that is native to another host, or the file encoding does not match the 
+      session encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+      performance.
+74           ***generating end day, month and year of aeendtc;
+75           E_Year= input(substr(AEENDTC, 1,4), best8.);
+76           E_Month= input(substr(AEENDTC, 6,2), best8.);
+77           E_day = input(substr(AEENDTC,9,2), best8.);
+78         
+79         
+80          ***generating end day, month and year of aesdtc;
+81           S_Year= input(substr(AESTDTC, 1,4), best8.);
+82           S_Month= input(substr(AESTDTC, 6,2), best8.);
+83           S_day = input(substr(AESTDTC,9,2), best8.);
+84         
+85         ***generating end day, month and year of RFSTDTC;
+86           R_Year= input(substr(RFSTDTC, 1,4), best8.);
+87           R_Month= input(substr(RFSTDTC, 6,2), best8.);
+88           R_day = input(substr(RFSTDTC,9,2), best8.);
+89         
+90           RUN;
+
+NOTE: There were 150 observations read from the data set AEVENT.AE_REPORT.
+NOTE: The data set WORK.AE1 has 150 observations and 18 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1060.28k
+      OS Memory           22436.00k
+2                                                          The SAS System                    Saturday, February 10, 2024 08:25:22 AM
+
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        204  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     189
+      Page Swaps                        0
+      Voluntary Context Switches        16
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+91         
+92         
+93         data aesd;
+94           set ae1;
+95         
+96           ***if year is missing AESTDTC;
+97           if s_day=. and s_month=. and s_year=. then do;
+98           if AEENDTC>=RFSTDTC or AEENDTC in(" ", "ONGOING") then do;
+99            s_day=r_day;
+100           s_month = r_month;
+101           s_year= r_year;
+102          end;
+103          else do;
+104           s_day=1;
+105           s_month = 1;
+106           s_year= e_year;
+107          end;
+108          Astdtf = "Y";
+109          end;
+110        
+111          ***if month is missing AESTDTC;
+112          if s_day and s_month = . then do;
+113          if s_year=r_year and (AEENDTC >= RFSTDTC or AEENDTC
+114          in (" ",  "ONGOING")) then do;
+115           s_day=r_day;
+116           s_month=r_month;
+117          end;
+118          else do;
+119           s_day=1 ;
+120           s_month=1;
+121          end;
+122          Astdtf = "M";
+123          end;
+124        
+125            ****if day is missing AESTDTC;
+126          if S_day= . then do;
+127          if R_month = S_Month and R_year = S_year and
+128          (AEENDTC>= RFSTDTC or  AEENDTC in (" ", "ONGOING"))
+129          then s_day= R_day; * myd(R_day, E_month, E_year);
+130          else s_day= 01;
+131          Astdtf= "D";
+132          end;
+133        
+134          ***if year is missing AEENDTC;
+135          if e_day=. and e_month=. and e_year=. then do;
+136        	e_day=.;
+137        	e_month = .;
+3                                                          The SAS System                    Saturday, February 10, 2024 08:25:22 AM
+
+138        	e_year= .;
+139        	Aendtf= "Y";
+140          end;
+141        
+142          run;
+
+NOTE: There were 150 observations read from the data set WORK.AE1.
+NOTE: The data set WORK.AESD has 150 observations and 20 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              833.96k
+      OS Memory           22696.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        205  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     111
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+143          ***if month is missing AEENDTC;
+144        
+145          data m_smonth;
+146          set aesd;
+147          if e_day and e_month = . then do;
+148            e_day=31;
+149            e_month=12;
+150            Aendtf= "M";
+151          end;
+152        
+153          ****if day is missing AEENDTC, considering if month ends
+154          in 31, 30, 28 or 29(in the case of leapyear);
+155        
+156          if e_day= . and e_year ne . then do;
+157          if e_month in(4,6,9,11) then e_day=30;
+158          else if e_month in(1,3,5,7,8,10,12) then e_day=31;
+159          else if e_month = 2 and mod(e_year,4)=0 then e_day= 29;
+160          else if e_month = 2 then e_day=28;
+161          Aendtf= "D";
+162          end;
+163        run;
+
+NOTE: There were 150 observations read from the data set WORK.AESD.
+NOTE: The data set WORK.M_SMONTH has 150 observations and 20 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              826.31k
+      OS Memory           22696.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        206  Switch Count  2
+      Page Faults                       0
+4                                                          The SAS System                    Saturday, February 10, 2024 08:25:22 AM
+
+      Page Reclaims                     107
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+164        
+165        **Analysis Start date and Analysis End date;
+166        data report;
+167          set m_smonth;
+168          if e_year ne . then do;
+169          Astdt= mdy(s_month, s_day, s_year);
+170          Aendt = mdy(e_month, e_day, e_year);
+171          end;
+172          format Aendt yymmdd10. Astdt yymmdd10.;
+173        run;
+
+NOTE: There were 150 observations read from the data set WORK.M_SMONTH.
+NOTE: The data set WORK.REPORT has 150 observations and 22 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              821.87k
+      OS Memory           22696.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        207  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     103
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+174        
+175        data final_report;
+176          retain usubjid rfstdtc AESTDTC Astdt AEENDTC Aendt;
+177          set report;
+178          by usubjid;
+179          drop r_day r_month r_year e_day e_year
+180          e_month s_year s_month s_day;
+181        
+182          *derive the Treatment Emergent Adverse Event Flag;
+183        
+184          if AESTDTC >= rfstdtc then TEAEF = "Y";
+185          If first.usubjid then Aeseq = .;
+186          Aeseq+1;
+187          label Aendt = "Analysis end date"
+188          Astdt = "Analysis start date"
+189          TEAEF = "Treatment emergent adverse event flag"
+190           Astdtf = "Analysis start date inputation flag"
+191           Aendtf = "Analysis end date inputation flag";
+192        run;
+
+5                                                          The SAS System                    Saturday, February 10, 2024 08:25:22 AM
+
+NOTE: There were 150 observations read from the data set WORK.REPORT.
+NOTE: The data set WORK.FINAL_REPORT has 150 observations and 15 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              898.03k
+      OS Memory           22696.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        208  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     110
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+193        
+194        
+195        ****note to work on aesd;
+196        proc copy in=work out=aevent;
+197        select final_report;
+198        run;
+
+NOTE: Copying WORK.FINAL_REPORT to AEVENT.FINAL_REPORT (memtype=DATA).
+NOTE: There were 150 observations read from the data set WORK.FINAL_REPORT.
+NOTE: The data set AEVENT.FINAL_REPORT has 150 observations and 15 variables.
+NOTE: PROCEDURE COPY used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              997.40k
+      OS Memory           22956.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        209  Switch Count  5
+      Page Faults                       0
+      Page Reclaims                     207
+      Page Swaps                        0
+      Voluntary Context Switches        49
+      Involuntary Context Switches      0
+      Block Input Operations            32
+      Block Output Operations           272
+      
+
+199        
+200        
+201        **for the second dataset;
+202        data Ae1B;
+203          set aevent.adae;
+NOTE: Data file AEVENT.ADAE.DATA is in a format that is native to another host, or the file encoding does not match the session 
+      encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+      performance.
+204          ***generating end day, month and year of aeendtc;
+205          E_Year=  substr(AEENDTC, 1,4);
+206          E_Month= substr(AEENDTC, 6,2);
+207          E_day = substr(AEENDTC,9,2);
+6                                                          The SAS System                    Saturday, February 10, 2024 08:25:22 AM
+
+208          *end;
+209        
+210        
+211         ***generating end day, month and year of aesdtc;
+212          S_Year= substr(AESTDTC, 1,4);
+213          S_Month= substr(AESTDTC, 6,2);
+214          S_day = substr(AESTDTC,9,2);
+215        
+216        ***generating end day, month and year of RFSTDTC;
+217          R_Year= substr(RFSTDTC, 1,4);
+218          R_Month= substr(RFSTDTC, 6,2);
+219          R_day = substr(RFSTDTC,9,2);
+220         * end;
+221          RUN;
+
+NOTE: There were 150 observations read from the data set AEVENT.ADAE.
+NOTE: The data set WORK.AE1B has 150 observations and 19 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1033.12k
+      OS Memory           22436.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        210  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     104
+      Page Swaps                        0
+      Voluntary Context Switches        17
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+222        
+223        
+224        data AESD2;
+225          set ae1B;
+226          ***if year is missing AESTDTC;
+227          if s_day=" " and s_month= " " and s_year= " " then do;
+228          if AEENDTC>=RFSTDTC or AEENDTC in(" ", "ONGOING") then do;
+229           s_day=r_day;
+230           s_month = r_month;
+231           s_year= r_year;
+232          end;
+233          else do;
+234           s_day="01";
+235           s_month = "01";
+236           s_year= e_year;
+237          end;
+238          Astdtf = "Y";
+239          end;
+240        
+241          ***if month is missing AESTDTC;
+242          if s_day = " " and s_month = " " then do;
+243          if s_year=r_year and (AEENDTC >= RFSTDTC or AEENDTC
+244          in (" ",  "ONGOING")) then do;
+245           s_day=r_day;
+7                                                          The SAS System                    Saturday, February 10, 2024 08:25:22 AM
+
+246           s_month=r_month;
+247          end;
+248          else do;
+249           s_day="01";
+250           s_month="01";
+251          end;
+252          Astdtf = "M";
+253          end;
+254        
+255            ****if day is missing AESTDTC;
+256          if S_day= " " then do;
+257          if R_month = S_Month and R_year = S_year and
+258          (AEENDTC>= RFSTDTC or  AEENDTC in (" ", "ONGOING"))
+259          then s_day= R_day;
+260          else s_day= "01";
+261          Astdtf= "D";
+262          end;
+263        
+264        
+265          ***if year is missing AEENDTC;
+266          if e_day= "" and e_month= " " and e_year=" " then do;
+267        	e_day=" ";
+268        	e_month = " ";
+269        	e_year= " ";
+270        	Aendtf= "Y";
+271          end;
+272          run;
+
+NOTE: There were 150 observations read from the data set WORK.AE1B.
+NOTE: The data set WORK.AESD2 has 150 observations and 19 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              832.03k
+      OS Memory           22696.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        211  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     111
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+273        
+274          ***if month is missing AEENDTC;
+275        
+276          data m_smonth2;
+277          set aesd2;
+278          if e_day = " " and e_month = " " then do;
+279            e_day="31";
+280            e_month="12";
+281            Aendtf= "M";
+282            *drop AEENDTC;
+283          end;
+8                                                          The SAS System                    Saturday, February 10, 2024 08:25:22 AM
+
+284        
+285          ****if day is missing AEENDTC, considering if month ends
+286          in 31, 30, 28 or 29(in the case of leapyear);
+287          *create a temp var by converting e_year to numeric to be able to create a condition for leap years;
+288          e_year_leap = input(e_year, 4.);
+289          if e_day= " " then do;
+290          if e_month in("04","06","11","09") then e_day="30";
+291         else if e_month in("01","03","05","07","08","10","12") then e_day="31";
+292          else if e_month = "02" and (mod(e_year_leap,04)=0) then e_day= "29";
+293          else if e_month = "02" then e_day="28";
+294          Aendtf= "D";
+295          end;
+296        run;
+
+NOTE: There were 150 observations read from the data set WORK.AESD2.
+NOTE: The data set WORK.M_SMONTH2 has 150 observations and 20 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              827.96k
+      OS Memory           22696.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        212  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     112
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+297        
+298        
+299        data adae_report;
+300        length AEENDTC AESTDTC $10;;
+301          set m_smonth2;
+302           AESTDTC= catx("-", s_year, s_month, s_day);
+303         AEENDTC= catx("-", e_year, e_month, e_day);
+304        run;
+
+NOTE: There were 150 observations read from the data set WORK.M_SMONTH2.
+NOTE: The data set WORK.ADAE_REPORT has 150 observations and 20 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              815.71k
+      OS Memory           22696.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        213  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     110
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+9                                                          The SAS System                    Saturday, February 10, 2024 08:25:22 AM
+
+      Block Output Operations           264
+      
+
+305        
+306        data final_adae_report;
+307          retain usubjid rfstdtc AESTDTC Astdt AEENDTC Aendt;
+308          set adae_report;
+309          by usubjid;
+310          drop r_day r_month r_year e_day e_year
+311          e_month s_year s_month s_day e_year_leap;
+312          if AESTDTC >= rfstdtc then TEAEF = "Y";
+313          If first.usubjid then Aeseq = .;
+314          Aeseq+1;
+315          label Aendt = "Analysis end date"
+316          Astdt = "Analysis start date"
+317          TEAEF = "Treatment emergent adverse event flag"
+318           Astdtf = "Analysis start date inputation flag"
+319           Aendtf = "Analysis end date inputation flag";
+320        run;
+
+NOTE: There were 150 observations read from the data set WORK.ADAE_REPORT.
+NOTE: The data set WORK.FINAL_ADAE_REPORT has 150 observations and 12 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              890.09k
+      OS Memory           22696.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        214  Switch Count  2
+      Page Faults                       0
+      Page Reclaims                     117
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+321        
+322        
+323        proc copy in=work out=aevent;
+324        select final_adae_report;
+325        run;
+
+NOTE: Copying WORK.FINAL_ADAE_REPORT to AEVENT.FINAL_ADAE_REPORT (memtype=DATA).
+NOTE: There were 150 observations read from the data set WORK.FINAL_ADAE_REPORT.
+NOTE: The data set AEVENT.FINAL_ADAE_REPORT has 150 observations and 12 variables.
+NOTE: PROCEDURE COPY used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              993.03k
+      OS Memory           22956.00k
+      Timestamp           02/10/2024 07:25:22 AM
+      Step Count                        215  Switch Count  5
+      Page Faults                       0
+      Page Reclaims                     149
+10                                                         The SAS System                    Saturday, February 10, 2024 08:25:22 AM
+
+      Page Swaps                        0
+      Voluntary Context Switches        51
+      Involuntary Context Switches      0
+      Block Input Operations            32
+      Block Output Operations           280
+      
+
+326        proc printto;
+327        run;
+
